@@ -1,2 +1,2 @@
 # tst1
-linha nova
+ideia nova
