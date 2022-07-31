@@ -11,7 +11,7 @@ e.g: `tar -czvf name-of-archive.tar.gz /path/to/directory-or-file`
 
 ## Extract an Archive
 
-e.g: `tar -xvzf name-of-archive.tar.gz`
+e.g: `tar -xzvf name-of-archive.tar.gz`
 
 
 * f: this must be the last flag of the command, and the tar file must be immediately after. It tells tar the name and path of the compressed file.
