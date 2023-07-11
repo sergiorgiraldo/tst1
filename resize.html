@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+        .container {
+            display: flex;
+        }
+
+        .left-pane {
+            /* flex: 1; */
+            overflow: auto;
+            border: 1px solid black;
+            background-color: aliceblue;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        .right-pane {
+            /* flex: 1; */
+            overflow: auto;
+            border: 1px solid black;
+            border-left: 2px solid black;
+            background-color: darksalmon;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+    </style>
+    <script src="https://unpkg.com/interactjs/dist/interact.min.js"></script>
+    <script>
+        interact('.left-pane')
+            .resizable({
+                edges: { top: true, left: true, bottom: true, right: true },
+                listeners: {
+                    move: function (event) {
+                        let { x, y } = event.target.dataset
+
+                        x = (parseFloat(x) || 0) + event.deltaRect.left
+                        y = (parseFloat(y) || 0) + event.deltaRect.top
+
+                        Object.assign(event.target.style, {
+                            width: `${event.rect.width}px`,
+                            height: `${event.rect.height}px`,
+                            transform: `translate(${x}px, ${y}px)`
+                        })
+
+                        Object.assign(event.target.dataset, { x, y })
+
+                    }
+                }
+            })
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="left-pane">
+            <ul>
+                <li>1 Once upon a midnight dreary</li>
+                <li>2 Once upon a midnight dreary</li>
+                <li>3 Once upon a midnight dreary</li>
+                <li>4 Once upon a midnight dreary</li>
+                <li>5 Once upon a midnight dreary</li>
+                <li>6 Once upon a midnight dreary</li>
+                <li>7 Once upon a midnight dreary</li>
+                <li>8 Once upon a midnight dreary</li>
+                <li>9 Once upon a midnight dreary</li>
+                <li>10 Once upon a midnight dreary</li>
+            </ul>
+        </div>
+        <div class="right-pane">
+            Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula
+            eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient
+            montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque
+            eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo,
+            fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut,
+            imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+            Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate
+            eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac,
+            enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus
+            viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam
+            <br /><br />
+            Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula
+            eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient
+            montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque
+            eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo,
+            fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut,
+            imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+            Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate
+            eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac,
+            enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus
+            viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam
+            <br /><br />
+            Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula
+            eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient
+            montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque
+            eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo,
+            fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut,
+            imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+            Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate
+            eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac,
+            enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus
+            viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam
+        </div>
+
+    </div>
+
+</body>
+
+</html>
