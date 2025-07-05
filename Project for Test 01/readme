@@ -1,0 +1,16 @@
+# Using CLI
+
+- `gh project list`
+    number of the project and id of project
+
+- `gh project field-list 4 --owner sergiorgiraldo`
+    id of 'status' field
+
+- `gh project field-list 4 --owner sergiorgiraldo --format json --jq '.fields[]|select(.name == "Status")|.options'`
+    get id of options
+
+- `gh project item-list 4 --owner sergiorgiraldo`
+    get id of ticket
+
+- `gh project item-edit --project-id PVT_kwHOABF2LM4A9Hmr --id PVTI_lAHOABF2LM4A9HmrzgcRRzc --field-id PVTSSF_lAHOABF2LM4A9Hmrzgw6qCk --single-select-option-id 98236657`
+    update to "Done"
