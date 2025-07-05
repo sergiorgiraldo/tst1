@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Validate number of arguments
+if [ "$#" -ne 3 ]; then
+  echo "❌ Error: Script expects exactly 3 parameters:"
+  echo "1️⃣ Project name (free-format)"
+  echo "2️⃣ Task name (free-format)"
+  echo "3️⃣ Status (must be one of: Backlog, In Progress, Done)"
+  exit 1
+fi
+
+# Assign arguments to variables
+project="$1"
+task="$2"
+status="$3"
+
+# Validate the third parameter
+if [[ "$status" != "Backlog" && "$status" != "In Progress" && "$status" != "Done" ]]; then
+  echo "❌ Error: Status must be one of the following strings: Backlog, In Progress, Done"
+  exit 1
+fi
+
+proj_nb=`gh project list --owner sergiorgiraldo| grep $project | choose 0`
+
+proj_id=`gh project list --owner sergiorgiraldo| grep $project | choose -1`
+
+status_id=`gh project field-list $proj_nb --owner sergiorgiraldo | grep Status | choose -1`
+
+task_id=`gh project item-list $proj_nb --owner sergiorgiraldo | grep $task | choose -1` 
+
+jq_filter=".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$status\") | .id"
+transition_id=$(gh project field-list "$proj_nb" --owner sergiorgiraldo --format json --jq "$jq_filter")
+
+echo $proj_nb
+echo $proj_id
+echo $status_id
+echo $task_id
+echo $transition_id
