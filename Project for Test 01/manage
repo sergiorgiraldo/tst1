@@ -24,15 +24,21 @@ proj_nb=`gh project list --owner sergiorgiraldo| grep $project | choose 0`
 
 proj_id=`gh project list --owner sergiorgiraldo| grep $project | choose -1`
 
-status_id=`gh project field-list $proj_nb --owner sergiorgiraldo | grep Status | choose -1`
+if [[ "$status" != "Backlog" ]]; then
+  status_id=`gh project field-list $proj_nb --owner sergiorgiraldo | grep Status | choose -1`
 
-task_id=`gh project item-list $proj_nb --owner sergiorgiraldo | grep $task | choose -1` 
+  task_id=`gh project item-list $proj_nb --owner sergiorgiraldo | grep $task | choose -1` 
 
-jq_filter=".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$status\") | .id"
-transition_id=$(gh project field-list "$proj_nb" --owner sergiorgiraldo --format json --jq "$jq_filter")
+  jq_filter=".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$status\") | .id"
+  transition_id=$(gh project field-list "$proj_nb" --owner sergiorgiraldo --format json --jq "$jq_filter")
 
-echo $proj_nb
-echo $proj_id
-echo $status_id
-echo $task_id
-echo $transition_id
+  echo $proj_nb
+  echo $proj_id
+  echo $status_id
+  echo $task_id
+  echo $transition_id
+else
+  issue=`gh issue create --title $task --body $task`
+  gh project item-add $proj_nb --owner sergiorgiraldo --url $issue
+  echo $issue
+fi
