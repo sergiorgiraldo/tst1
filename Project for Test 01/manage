@@ -1,0 +1,48 @@
+#!/bin/bash
+
+show_help() {
+  echo "Script expects 3 parameters:"
+  echo "1️⃣ Project name (free-format)"
+  echo "2️⃣ Task name (free-format)"
+  echo "3️⃣ Status (must be one of: Backlog, Doing, Done)"
+  echo ""
+  echo "manage {Project} {Task} {Backlog} -> Add issue and item to project backlog"
+  echo "manage {Project} {Task} {Doing/Done} -> Update status of item in project"
+  exit 1
+}
+
+# Validate number of arguments
+if [ "$#" -ne 3 ]; then
+  show_help
+fi
+
+# Assign arguments to variables
+project="$1"
+task="$2"
+status="$3"
+
+# Validate the third parameter
+if [[ "$status" != "Backlog" && "$status" != "Doing" && "$status" != "Done" ]]; then
+  show_help
+fi
+
+proj_nb=`gh project list --owner sergiorgiraldo| grep $project | choose 0`
+
+proj_id=`gh project list --owner sergiorgiraldo| grep $project | choose -1`
+
+status_id=`gh project field-list $proj_nb --owner sergiorgiraldo | grep Status | choose -1`
+
+jq_filter=".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$status\") | .id"
+transition_id=$(gh project field-list "$proj_nb" --owner sergiorgiraldo --format json --jq "$jq_filter")
+
+if [[ "$status" == "Backlog" ]]; then
+  # Add issue and item in project
+  issue=$(gh issue create --assignee @me --title "$task" --body "$task")
+  task_id=`gh project item-add $proj_nb --owner sergiorgiraldo --url $issue --format json | jq -r '.id'`
+else
+  # Get task id to change status
+  task_id=`gh project item-list $proj_nb --owner sergiorgiraldo | grep $task | choose -1` 
+fi
+
+# Update status (Backlog/Doing/Done)
+gh project item-edit --project-id $proj_id --id $task_id --field-id $status_id --single-select-option-id $transition_id
