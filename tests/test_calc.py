@@ -7,9 +7,6 @@ import pytest
 def tok_types(text):
     return [t.type for t in tokenize(text)]
 
-def tok_values(text):
-    return [t.value for t in tokenize(text) if t.type != 'EOF']
-
 
 class TestLexer:
     def test_simple_number(self):
