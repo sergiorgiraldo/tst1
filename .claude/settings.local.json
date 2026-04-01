@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/avenuecreek/source/tst1 log --oneline -5)",
+      "Bash(git -C /Users/avenuecreek/source/tst1 add docs/superpowers/specs/2026-04-01-terminal-calculator-design.md)",
+      "Bash(git -C /Users/avenuecreek/source/tst1 commit -m \"docs: add terminal calculator design spec\")",
+      "Bash(git -C /Users/avenuecreek/source/tst1 add docs/superpowers/plans/2026-04-01-terminal-calculator.md)",
+      "Bash(git -C /Users/avenuecreek/source/tst1 commit -m \"docs: add terminal calculator implementation plan\")",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)"
+    ]
+  }
+}
