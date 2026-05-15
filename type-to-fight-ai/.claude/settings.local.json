@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x *)",
+      "Bash(node /Users/avenuecreek/source/tst1/type-to-fight-ai/index.js)",
+      "Read(//Users/avenuecreek/.config/ttfa/**)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node -e ' *)",
+      "Bash(git config *)"
+    ]
+  }
+}

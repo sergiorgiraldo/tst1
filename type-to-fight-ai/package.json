@@ -1,0 +1,13 @@
+{
+  "name": "type-to-fight-ai",
+  "version": "1.0.0",
+  "description": "Simulate human homework writing in a git repository",
+  "main": "index.js",
+  "bin": {
+    "ttfa": "./index.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "license": "MIT"
+}
