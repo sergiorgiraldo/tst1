@@ -69,12 +69,11 @@ function selectActiveDates({ activeDays, dayPattern, timeWindows }) {
   const candidates = [];
   const now = new Date();
   const cursor = new Date(now);
-  cursor.setHours(0, 0, 0, 0); // start from today
+  cursor.setHours(0, 0, 0, 0);
 
   for (let i = 0; i < 90 && candidates.length < activeDays; i++) {
     if (dayPattern.includes(cursor.getDay())) {
       const isToday = i === 0;
-      // For today, only include if at least one window hasn't ended yet
       const hasRemainingWindow = !isToday || timeWindows.some(w => {
         const end = setTimeLocal(cursor, w.endHour, w.endMinute);
         return end > now;
@@ -93,7 +92,6 @@ function selectActiveDates({ activeDays, dayPattern, timeWindows }) {
     );
   }
 
-  // Take the earliest activeDays (already in order) to minimize total elapsed time
   return candidates.slice(0, activeDays).map(date => {
     const isToday = date.toDateString() === now.toDateString();
     return {
@@ -105,8 +103,8 @@ function selectActiveDates({ activeDays, dayPattern, timeWindows }) {
         }))
         .filter(w =>
           w.end > w.start &&
-          (w.end - w.start) >= 10 * 60000 && // at least 10 min wide
-          (!isToday || w.end > now)           // for today, window must not have ended
+          (w.end - w.start) >= 10 * 60000 &&
+          (!isToday || w.end > now)
         ),
     };
   });
@@ -117,7 +115,6 @@ function generateActions(content, config) {
   const words = content.split(/\s+/).filter(Boolean);
   const totalWords = words.length;
 
-  // Count how many write bursts we'll have total
   const sessions = [];
   let totalBursts = 0;
 
@@ -137,13 +134,12 @@ function generateActions(content, config) {
   const wordsPerBurst = Math.ceil(totalWords / totalBursts);
   const actions = [];
   let wordPos = 0;
-  let writtenText = ''; // accumulates what has been "written" so far (for edit planning)
+  let writtenText = '';
 
   for (let si = 0; si < sessions.length; si++) {
     const { window, numBursts } = sessions[si];
     const winMs = window.end - window.start;
 
-    // Space bursts evenly across 70% of window, starting after a random offset in first 20%
     const usableMs = winMs * 0.70;
     const startOffset = rand(0, winMs * 0.15);
     const gapMs = numBursts > 1 ? usableMs / (numBursts - 1) : 0;
@@ -156,7 +152,6 @@ function generateActions(content, config) {
         ? words.slice(wordPos)
         : words.slice(wordPos, wordPos + wordsPerBurst);
 
-      // Add newline between sessions, space within a session
       const separator = b === numBursts - 1 ? '\n' : ' ';
       const burstText = burstWords.join(' ') + separator;
 
@@ -167,7 +162,7 @@ function generateActions(content, config) {
         id: actions.length,
         type: 'write',
         text: burstText,
-        commitMsg: commitMsg(wordPos / totalWords),
+        label: commitMsg(wordPos / totalWords),
         scheduledAt: burstTime.toISOString(),
         completed: false,
       });
@@ -176,12 +171,10 @@ function generateActions(content, config) {
       wordPos += burstWords.length;
     }
 
-    // 40% chance: schedule an edit + revert within this window
     if (writtenText.length > 100 && Math.random() < 0.4) {
       const pair = findEditPair(writtenText);
 
       if (pair) {
-        // Edit happens in the latter half of the window
         const editTime = addMin(window.start, rand(
           Math.floor(winMs / 60000 * 0.5),
           Math.floor(winMs / 60000 * 0.75)
@@ -193,7 +186,7 @@ function generateActions(content, config) {
             type: 'edit',
             searchText: pair.searchText,
             replaceText: pair.replaceText,
-            commitMsg: pickMsg(EDIT_MSGS),
+            label: pickMsg(EDIT_MSGS),
             scheduledAt: editTime.toISOString(),
             completed: false,
           });
@@ -205,7 +198,7 @@ function generateActions(content, config) {
               type: 'edit',
               searchText: pair.replaceText,
               replaceText: pair.searchText,
-              commitMsg: pickMsg(REVERT_MSGS),
+              label: pickMsg(REVERT_MSGS),
               scheduledAt: revertTime.toISOString(),
               completed: false,
             });
@@ -215,7 +208,6 @@ function generateActions(content, config) {
     }
   }
 
-  // Sort all actions chronologically and reassign IDs
   return actions
     .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
     .map((a, i) => ({ ...a, id: i }));

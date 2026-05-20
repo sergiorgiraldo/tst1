@@ -1,0 +1,16 @@
+{
+  "name": "type-to-fight-ai-onedrive",
+  "version": "1.0.0",
+  "description": "Simulate human document writing in a OneDrive folder as a DOCX file",
+  "main": "index.js",
+  "bin": {
+    "ttfa-od": "./index.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "docx": "^8.5.0"
+  },
+  "license": "MIT"
+}
