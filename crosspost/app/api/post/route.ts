@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const HASHTAG_LINE = /^(#[^\s#]+)(\s+#[^\s#]+)*$/;
 
-// A trailing line of only "#tag1 #tag2 ..." is treated as tag metadata, not
-// body copy, so it's split off and turned into WordPress tags instead.
+// A trailing line of only "#tag1 #tag2 ..." is treated as category metadata,
+// not body copy, so it's split off and turned into WordPress categories instead.
 function extractHashtags(content: string): { content: string; tags: string[] } {
   const lines = content.split("\n");
   let lastIndex = lines.length - 1;
@@ -20,56 +20,56 @@ function extractHashtags(content: string): { content: string; tags: string[] } {
   return { content: strippedContent, tags };
 }
 
-async function getOrCreateWordPressTagIds(
-  tags: string[],
+async function getOrCreateWordPressCategoryIds(
+  categories: string[],
   url: string,
   authHeader: string
-): Promise<{ tagIds: number[]; warnings: string[] }> {
-  const tagIds: number[] = [];
+): Promise<{ categoryIds: number[]; warnings: string[] }> {
+  const categoryIds: number[] = [];
   const warnings: string[] = [];
 
-  for (const tagName of tags) {
-    const searchResponse = await fetch(`${url}/wp-json/wp/v2/tags?search=${encodeURIComponent(tagName)}`, {
+  for (const categoryName of categories) {
+    const searchResponse = await fetch(`${url}/wp-json/wp/v2/categories?search=${encodeURIComponent(categoryName)}`, {
       headers: { Authorization: authHeader },
     });
 
     if (!searchResponse.ok) {
       const error = await searchResponse.text();
-      throw new Error(`WordPress tag lookup error (${searchResponse.status}): ${error}`);
+      throw new Error(`WordPress category lookup error (${searchResponse.status}): ${error}`);
     }
 
     const matches: { id: number; name: string }[] = await searchResponse.json();
-    const exact = matches.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
+    const exact = matches.find((category) => category.name.toLowerCase() === categoryName.toLowerCase());
 
     if (exact) {
-      tagIds.push(exact.id);
+      categoryIds.push(exact.id);
       continue;
     }
 
-    const createResponse = await fetch(`${url}/wp-json/wp/v2/tags`, {
+    const createResponse = await fetch(`${url}/wp-json/wp/v2/categories`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({ name: tagName }),
+      body: JSON.stringify({ name: categoryName }),
     });
 
     if (!createResponse.ok) {
       const error = await createResponse.text();
-      // Creating a new tag needs the manage_categories capability (Editor/Admin).
-      // Don't fail the whole post over a missing tag — skip it and warn instead.
+      // Creating a new category needs the manage_categories capability (Editor/Admin).
+      // Don't fail the whole post over a missing category — skip it and warn instead.
       warnings.push(
-        `Could not create WordPress tag "#${tagName}" (${createResponse.status}): ${error}. The WordPress user needs Editor or Administrator role to create new tags.`
+        `Could not create WordPress category "#${categoryName}" (${createResponse.status}): ${error}. The WordPress user needs Editor or Administrator role to create new categories.`
       );
       continue;
     }
 
     const created = await createResponse.json();
-    tagIds.push(created.id);
+    categoryIds.push(created.id);
   }
 
-  return { tagIds, warnings };
+  return { categoryIds, warnings };
 }
 
 async function postToWordPress(title: string, content: string, hashtags: string[]) {
@@ -84,8 +84,10 @@ async function postToWordPress(title: string, content: string, hashtags: string[
   const credentials = Buffer.from(`${username}:${appPassword}`).toString("base64");
   const authHeader = `Basic ${credentials}`;
 
-  const { tagIds, warnings } =
-    hashtags.length > 0 ? await getOrCreateWordPressTagIds(hashtags, url, authHeader) : { tagIds: [], warnings: [] };
+  const { categoryIds, warnings } =
+    hashtags.length > 0
+      ? await getOrCreateWordPressCategoryIds(hashtags, url, authHeader)
+      : { categoryIds: [], warnings: [] };
 
   const response = await fetch(`${url}/wp-json/wp/v2/posts`, {
     method: "POST",
@@ -97,7 +99,7 @@ async function postToWordPress(title: string, content: string, hashtags: string[
       title,
       content,
       status: "publish",
-      ...(tagIds.length > 0 && { tags: tagIds }),
+      ...(categoryIds.length > 0 && { categories: categoryIds }),
     }),
   });
 
@@ -110,15 +112,13 @@ async function postToWordPress(title: string, content: string, hashtags: string[
   return { url: data.link, id: data.id, warnings };
 }
 
-async function postToLinkedIn(title: string, content: string) {
+async function postToLinkedIn(content: string) {
   const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
   const authorUrn = process.env.LINKEDIN_AUTHOR_URN;
 
   if (!accessToken || !authorUrn) {
     throw new Error("LinkedIn credentials not configured in .env.local");
   }
-
-  const text = `${title}\n\n${content}`;
 
   const response = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
@@ -132,7 +132,7 @@ async function postToLinkedIn(title: string, content: string) {
       lifecycleState: "PUBLISHED",
       specificContent: {
         "com.linkedin.ugc.ShareContent": {
-          shareCommentary: { text },
+          shareCommentary: { text: content },
           shareMediaCategory: "NONE",
         },
       },
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     const [wpResult, liResult] = await Promise.allSettled([
       postToWordPress(title, wpContent, hashtags),
-      postToLinkedIn(title, content),
+      postToLinkedIn(content),
     ]);
 
     if (wpResult.status === "fulfilled") {
