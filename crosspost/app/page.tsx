@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PostResult = {
   wordpress?: { url: string; id: number };
@@ -14,11 +14,34 @@ type LogEntry = {
   timestamp: string;
 };
 
+const DRAFT_KEY = "crosspost-draft";
+
+function loadDraft(): { title: string; content: string } {
+  if (typeof window === "undefined") return { title: "", content: "" };
+  const saved = localStorage.getItem(DRAFT_KEY);
+  if (!saved) return { title: "", content: "" };
+  try {
+    const draft = JSON.parse(saved);
+    return { title: draft.title ?? "", content: draft.content ?? "" };
+  } catch {
+    localStorage.removeItem(DRAFT_KEY);
+    return { title: "", content: "" };
+  }
+}
+
 export default function Home() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(() => loadDraft().title);
+  const [content, setContent] = useState(() => loadDraft().content);
   const [posting, setPosting] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    if (!title && !content) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content }));
+  }, [title, content]);
 
   function addLog(type: LogEntry["type"], message: string) {
     const timestamp = new Date().toLocaleTimeString();
@@ -60,6 +83,10 @@ export default function Home() {
       if (data.errors && data.errors.length > 0) {
         data.errors.forEach((e) => addLog("error", e));
       }
+
+      localStorage.removeItem(DRAFT_KEY);
+      setTitle("");
+      setContent("");
     } catch {
       addLog("error", "Network error — could not reach the server.");
     } finally {
