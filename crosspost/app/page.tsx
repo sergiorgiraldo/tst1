@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PostResult = {
   wordpress?: { url: string; id: number };
@@ -34,6 +34,17 @@ export default function Home() {
   const [content, setContent] = useState(() => loadDraft().content);
   const [posting, setPosting] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft.title || draft.content) {
+      contentRef.current?.focus();
+    } else {
+      titleRef.current?.focus();
+    }
+  }, []);
 
   useEffect(() => {
     if (!title && !content) {
@@ -108,6 +119,7 @@ export default function Home() {
               Title
             </label>
             <input
+              ref={titleRef}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -123,6 +135,7 @@ export default function Home() {
               Content
             </label>
             <textarea
+              ref={contentRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your post here..."
