@@ -2,3 +2,6 @@
 Lorem Ipsum Dolor Sit Amet
  fe st ideia nova
  Lorem Ipsum Dolor Sit Amet
+
+--
+crosspost deployed to vercel
