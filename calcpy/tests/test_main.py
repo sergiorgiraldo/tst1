@@ -10,6 +10,9 @@ from main import (
     Variable,
     FunctionCall,
     Assignment,
+    Parser,
+    ParseError,
+    parse,
 )
 
 
@@ -216,3 +219,224 @@ def test_assignment_dataclass():
     a = Assignment("y", Number(9, 4), 0)
     assert a.name == "y"
     assert a.expr.value == 9
+
+
+# ---------------------------------------------------------------------------
+# Parser
+# ---------------------------------------------------------------------------
+
+
+def test_parse_number():
+    node = parse("42")
+    assert isinstance(node, Number)
+    assert node.value == 42
+
+
+def test_parse_float():
+    node = parse("3.5")
+    assert isinstance(node, Number)
+    assert node.value == 3.5
+
+
+def test_parse_variable():
+    node = parse("foo")
+    assert isinstance(node, Variable)
+    assert node.name == "foo"
+
+
+def test_parse_simple_addition():
+    node = parse("1 + 2")
+    assert isinstance(node, BinOp)
+    assert node.op == "+"
+    assert node.left.value == 1
+    assert node.right.value == 2
+
+
+def test_parse_subtraction():
+    node = parse("5 - 3")
+    assert node.op == "-"
+
+
+def test_addition_left_associative():
+    # 1 - 2 - 3  ->  (1 - 2) - 3
+    node = parse("1 - 2 - 3")
+    assert node.op == "-"
+    assert isinstance(node.left, BinOp)
+    assert node.left.op == "-"
+    assert node.left.left.value == 1
+    assert node.left.right.value == 2
+    assert node.right.value == 3
+
+
+def test_multiplicative_ops():
+    for text, op in [("2*3", "*"), ("6/2", "/"), ("7//2", "//"), ("7%2", "%")]:
+        node = parse(text)
+        assert isinstance(node, BinOp)
+        assert node.op == op
+
+
+def test_precedence_mult_over_add():
+    # 1 + 2 * 3  ->  1 + (2 * 3)
+    node = parse("1 + 2 * 3")
+    assert node.op == "+"
+    assert node.left.value == 1
+    assert isinstance(node.right, BinOp)
+    assert node.right.op == "*"
+
+
+def test_power_right_associative():
+    # 2 ** 3 ** 2  ->  2 ** (3 ** 2)
+    node = parse("2 ** 3 ** 2")
+    assert node.op == "**"
+    assert node.left.value == 2
+    assert isinstance(node.right, BinOp)
+    assert node.right.op == "**"
+    assert node.right.left.value == 3
+    assert node.right.right.value == 2
+
+
+def test_power_over_mult():
+    # 2 * 3 ** 2  ->  2 * (3 ** 2)
+    node = parse("2 * 3 ** 2")
+    assert node.op == "*"
+    assert isinstance(node.right, BinOp)
+    assert node.right.op == "**"
+
+
+def test_unary_minus():
+    node = parse("-5")
+    assert isinstance(node, UnaryOp)
+    assert node.op == "-"
+    assert node.operand.value == 5
+
+
+def test_double_unary_minus():
+    node = parse("--5")
+    assert isinstance(node, UnaryOp)
+    assert isinstance(node.operand, UnaryOp)
+    assert node.operand.operand.value == 5
+
+
+def test_unary_binds_tighter_than_power_base():
+    # -2 ** 2 : unary parses first as base, then power
+    node = parse("-2 ** 2")
+    assert isinstance(node, BinOp)
+    assert node.op == "**"
+    assert isinstance(node.left, UnaryOp)
+
+
+def test_parenthesized_expr():
+    # (1 + 2) * 3
+    node = parse("(1 + 2) * 3")
+    assert node.op == "*"
+    assert isinstance(node.left, BinOp)
+    assert node.left.op == "+"
+    assert node.right.value == 3
+
+
+def test_function_call_no_args():
+    node = parse("rand()")
+    assert isinstance(node, FunctionCall)
+    assert node.name == "rand"
+    assert node.args == []
+
+
+def test_function_call_one_arg():
+    node = parse("sqrt(9)")
+    assert isinstance(node, FunctionCall)
+    assert node.name == "sqrt"
+    assert len(node.args) == 1
+    assert node.args[0].value == 9
+
+
+def test_function_call_multiple_args():
+    node = parse("max(1, 2, 3)")
+    assert isinstance(node, FunctionCall)
+    assert node.name == "max"
+    assert len(node.args) == 3
+    assert [a.value for a in node.args] == [1, 2, 3]
+
+
+def test_function_call_with_expr_args():
+    node = parse("pow(2 + 1, 3)")
+    assert isinstance(node, FunctionCall)
+    assert isinstance(node.args[0], BinOp)
+
+
+def test_assignment():
+    node = parse("x = 5")
+    assert isinstance(node, Assignment)
+    assert node.name == "x"
+    assert node.expr.value == 5
+
+
+def test_assignment_with_expression():
+    node = parse("y = 2 * 3 + 1")
+    assert isinstance(node, Assignment)
+    assert node.name == "y"
+    assert isinstance(node.expr, BinOp)
+
+
+def test_nested_parens():
+    node = parse("((7))")
+    assert isinstance(node, Number)
+    assert node.value == 7
+
+
+def test_parse_pos_tracked():
+    node = parse("1 + 2")
+    assert node.pos == 2  # position of the '+' operator
+
+
+def test_parser_class_direct():
+    p = Parser(tokenize("1 + 2"))
+    node = p.parse()
+    assert isinstance(node, BinOp)
+
+
+def test_trailing_token_raises():
+    with pytest.raises(ParseError):
+        parse("1 2")
+
+
+def test_missing_operand_raises():
+    with pytest.raises(ParseError):
+        parse("1 +")
+
+
+def test_unclosed_paren_raises():
+    with pytest.raises(ParseError):
+        parse("(1 + 2")
+
+
+def test_unmatched_rparen_raises():
+    with pytest.raises(ParseError):
+        parse(")")
+
+
+def test_missing_rparen_in_call_raises():
+    with pytest.raises(ParseError):
+        parse("f(1, 2")
+
+
+def test_empty_input_raises():
+    with pytest.raises(ParseError):
+        parse("")
+
+
+def test_parse_error_carries_pos():
+    with pytest.raises(ParseError) as exc:
+        parse("1 2")
+    assert exc.value.pos == 2
+
+
+def test_consume_wrong_type_raises():
+    p = Parser(tokenize("1"))
+    with pytest.raises(ParseError):
+        p.consume("PLUS")
+
+
+def test_parseerror_message_and_pos():
+    err = ParseError("bad", 3)
+    assert err.pos == 3
+    assert str(err) == "bad"
