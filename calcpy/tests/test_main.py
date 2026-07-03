@@ -1,6 +1,16 @@
 import pytest
 
-from main import Token, LexError, tokenize
+from main import (
+    Token,
+    LexError,
+    tokenize,
+    Number,
+    BinOp,
+    UnaryOp,
+    Variable,
+    FunctionCall,
+    Assignment,
+)
 
 
 def types(text):
@@ -129,3 +139,80 @@ def test_token_dataclass_fields():
     assert t.type == "NUMBER"
     assert t.value == 7
     assert t.pos == 3
+
+
+def test_only_whitespace_gives_eof():
+    toks = tokenize("   \t\n ")
+    assert len(toks) == 1
+    assert toks[0].type == "EOF"
+
+
+def test_multi_digit_int_value():
+    toks = tokenize("1000")
+    assert toks[0].value == 1000
+    assert isinstance(toks[0].value, int)
+
+
+def test_trailing_dot_float():
+    toks = tokenize("5.")
+    assert toks[0].type == "NUMBER"
+    assert toks[0].value == 5.0
+    assert isinstance(toks[0].value, float)
+
+
+def test_adjacent_number_and_ident():
+    assert [t.type for t in tokenize("2x")] == ["NUMBER", "IDENT", "EOF"]
+
+
+def test_double_slash_then_slash():
+    assert [t.type for t in tokenize("///")] == ["DSLASH", "SLASH", "EOF"]
+
+
+def test_ident_value_and_pos():
+    toks = tokenize("  abc")
+    assert toks[0].value == "abc"
+    assert toks[0].pos == 2
+
+
+def test_unexpected_char_at_start():
+    with pytest.raises(LexError) as exc:
+        tokenize("@")
+    assert exc.value.pos == 0
+
+
+def test_number_dataclass():
+    n = Number(3, 0)
+    assert n.value == 3
+    assert n.pos == 0
+
+
+def test_binop_dataclass():
+    node = BinOp("+", Number(1, 0), Number(2, 2), 1)
+    assert node.op == "+"
+    assert node.left.value == 1
+    assert node.right.value == 2
+    assert node.pos == 1
+
+
+def test_unaryop_dataclass():
+    node = UnaryOp("-", Number(5, 1), 0)
+    assert node.op == "-"
+    assert node.operand.value == 5
+
+
+def test_variable_dataclass():
+    v = Variable("x", 4)
+    assert v.name == "x"
+    assert v.pos == 4
+
+
+def test_functioncall_dataclass():
+    call = FunctionCall("max", [Number(1, 0), Number(2, 0)], 0)
+    assert call.name == "max"
+    assert len(call.args) == 2
+
+
+def test_assignment_dataclass():
+    a = Assignment("y", Number(9, 4), 0)
+    assert a.name == "y"
+    assert a.expr.value == 9
