@@ -1,6 +1,5 @@
-import math
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Any
 
 
 # ---------------------------------------------------------------------------
@@ -57,14 +56,22 @@ def tokenize(text: str) -> List[Token]:
         }
 
         if c == '*' and i + 1 < len(text) and text[i+1] == '*':
-            tokens.append(Token('DSTAR', '**', i)); i += 2; continue
+            tokens.append(Token('DSTAR', '**', i))
+            i += 2
+            continue
         if c == '/' and i + 1 < len(text) and text[i+1] == '/':
-            tokens.append(Token('DSLASH', '//', i)); i += 2; continue
+            tokens.append(Token('DSLASH', '//', i))
+            i += 2
+            continue
         if c == '=' and (i + 1 >= len(text) or text[i+1] != '='):
-            tokens.append(Token('EQ', '=', i)); i += 1; continue
+            tokens.append(Token('EQ', '=', i))
+            i += 1
+            continue
 
         if c in simple:
-            tokens.append(Token(simple[c], c, i)); i += 1; continue
+            tokens.append(Token(simple[c], c, i))
+            i += 1
+            continue
 
         raise LexError(f"unexpected character '{c}'", i)
 
