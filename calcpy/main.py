@@ -339,7 +339,7 @@ def main():
         try:
             ast = parse(text)
             result = evaluate(ast, env)
-            print(result)
+            print(f">> {result}")
         except (LexError, ParseError) as e:
             pointer = ' ' * (e.pos + 2) + '^'
             print(text)
