@@ -18,6 +18,7 @@ from main import (
     evaluate,
     FUNCTIONS,
     CONSTANTS,
+    main,
 )
 
 
@@ -612,3 +613,109 @@ def test_eval_unknown_node_type_raises():
 def test_functions_and_constants_registered():
     assert "sqrt" in FUNCTIONS
     assert CONSTANTS["pi"] == math.pi
+
+
+# ---------------------------------------------------------------------------
+# CLI (main)
+# ---------------------------------------------------------------------------
+
+
+def feed(monkeypatch, lines):
+    """Feed successive input() return values, then raise EOFError."""
+    it = iter(lines)
+
+    def fake_input(prompt=""):
+        try:
+            return next(it)
+        except StopIteration:
+            raise EOFError
+
+    monkeypatch.setattr("builtins.input", fake_input)
+
+
+def test_main_banner_printed(monkeypatch, capsys):
+    feed(monkeypatch, [])
+    main()
+    out = capsys.readouterr().out
+    assert "Simple calculator" in out
+
+
+def test_main_evaluates_expression(monkeypatch, capsys):
+    feed(monkeypatch, ["1 + 2"])
+    main()
+    out = capsys.readouterr().out
+    assert "3" in out
+
+
+def test_main_quit_stops(monkeypatch, capsys):
+    feed(monkeypatch, ["quit", "1 + 1"])
+    main()
+    out = capsys.readouterr().out
+    assert "2" not in out
+
+
+def test_main_exit_stops(monkeypatch, capsys):
+    feed(monkeypatch, ["exit", "5 * 5"])
+    main()
+    out = capsys.readouterr().out
+    assert "25" not in out
+
+
+def test_main_quit_case_insensitive(monkeypatch, capsys):
+    feed(monkeypatch, ["QUIT", "9 + 9"])
+    main()
+    out = capsys.readouterr().out
+    assert "18" not in out
+
+
+def test_main_empty_line_skipped(monkeypatch, capsys):
+    feed(monkeypatch, ["", "   ", "4 + 4"])
+    main()
+    out = capsys.readouterr().out
+    assert "8" in out
+
+
+def test_main_assignment_persists(monkeypatch, capsys):
+    feed(monkeypatch, ["x = 10", "x * 2"])
+    main()
+    out = capsys.readouterr().out
+    assert "20" in out
+
+
+def test_main_parse_error_shows_pointer(monkeypatch, capsys):
+    feed(monkeypatch, ["1 +"])
+    main()
+    out = capsys.readouterr().out
+    assert "^" in out
+    assert "Error:" in out
+
+
+def test_main_lex_error_shows_pointer(monkeypatch, capsys):
+    feed(monkeypatch, ["1 @ 2"])
+    main()
+    out = capsys.readouterr().out
+    assert "^" in out
+    assert "Error:" in out
+
+
+def test_main_runtime_error_reported(monkeypatch, capsys):
+    feed(monkeypatch, ["1 / 0"])
+    main()
+    out = capsys.readouterr().out
+    assert "Error:" in out
+
+
+def test_main_undefined_variable_reported(monkeypatch, capsys):
+    feed(monkeypatch, ["nope"])
+    main()
+    out = capsys.readouterr().out
+    assert "Error:" in out
+
+
+def test_main_keyboard_interrupt_breaks(monkeypatch, capsys):
+    def raising_input(prompt=""):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("builtins.input", raising_input)
+    main()  # should not propagate
+    assert True
