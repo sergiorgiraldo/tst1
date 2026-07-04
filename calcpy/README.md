@@ -4,6 +4,12 @@ Small calculator language. Tokenizer, lexer, parser. CLI loop to eval expression
 
 ## Changelog
 
+### 1.16.0 — 2026-07-04
+
+- Fixed ruff linting issues.
+- Added unit tests (`tests/test_main.py`).
+- Evaluator logic refinements for calc expressions.
+
 ### 1.15.0 — 2026-07-04
 
 - Fixed ruff linting issues.
