@@ -449,3 +449,166 @@ def test_parseerror_message_and_pos():
     err = ParseError("bad", 3)
     assert err.pos == 3
     assert str(err) == "bad"
+
+
+# ---------------------------------------------------------------------------
+# Evaluator
+# ---------------------------------------------------------------------------
+
+
+def test_eval_number():
+    assert calc("42") == 42
+
+
+def test_eval_float():
+    assert calc("3.5") == 3.5
+
+
+def test_eval_addition():
+    assert calc("1 + 2") == 3
+
+
+def test_eval_subtraction():
+    assert calc("5 - 8") == -3
+
+
+def test_eval_multiplication():
+    assert calc("4 * 3") == 12
+
+
+def test_eval_true_division():
+    assert calc("7 / 2") == 3.5
+
+
+def test_eval_floor_division():
+    assert calc("7 // 2") == 3
+
+
+def test_eval_modulo():
+    assert calc("7 % 3") == 1
+
+
+def test_eval_power():
+    assert calc("2 ** 10") == 1024
+
+
+def test_eval_power_right_associative():
+    assert calc("2 ** 3 ** 2") == 512
+
+
+def test_eval_precedence():
+    assert calc("1 + 2 * 3") == 7
+
+
+def test_eval_parens_change_precedence():
+    assert calc("(1 + 2) * 3") == 9
+
+
+def test_eval_unary_minus():
+    assert calc("-5") == -5
+
+
+def test_eval_double_unary_minus():
+    assert calc("--5") == 5
+
+
+def test_eval_unary_minus_with_power():
+    # -2 ** 2 -> (-2) ** 2 because unary is the power base
+    assert calc("-2 ** 2") == 4
+
+
+def test_eval_nested_parens():
+    assert calc("((7))") == 7
+
+
+def test_eval_constant_pi():
+    assert calc("pi") == math.pi
+
+
+def test_eval_constant_e():
+    assert calc("e") == math.e
+
+
+def test_eval_env_variable():
+    assert calc("x + 1", {"x": 10}) == 11
+
+
+def test_eval_env_overrides_constant():
+    assert calc("pi", {"pi": 3}) == 3
+
+
+def test_eval_undefined_variable_raises():
+    with pytest.raises(NameError):
+        calc("nope")
+
+
+def test_eval_function_sqrt():
+    assert calc("sqrt(9)") == 3.0
+
+
+def test_eval_function_abs():
+    assert calc("abs(-4)") == 4
+
+
+def test_eval_function_floor():
+    assert calc("floor(3.9)") == 3
+
+
+def test_eval_function_ceil():
+    assert calc("ceil(3.1)") == 4
+
+
+def test_eval_function_log_two_args():
+    assert calc("log(8, 2)") == pytest.approx(3.0)
+
+
+def test_eval_function_nested_arg():
+    assert calc("sqrt(4 + 5)") == 3.0
+
+
+def test_eval_undefined_function_raises():
+    with pytest.raises(NameError):
+        calc("nope(1)")
+
+
+def test_eval_division_by_zero_raises():
+    with pytest.raises(ZeroDivisionError):
+        calc("1 / 0")
+
+
+def test_eval_assignment_returns_value():
+    env = {}
+    assert calc("x = 5", env) == 5
+    assert env["x"] == 5
+
+
+def test_eval_assignment_then_use():
+    env = {}
+    calc("x = 5", env)
+    assert calc("x * 2", env) == 10
+
+
+def test_eval_assignment_with_expression():
+    env = {}
+    assert calc("y = 2 * 3 + 1", env) == 7
+    assert env["y"] == 7
+
+
+def test_eval_unknown_binop_raises():
+    with pytest.raises(ValueError):
+        evaluate(BinOp("^", Number(1, 0), Number(2, 0), 0), {})
+
+
+def test_eval_unknown_unaryop_raises():
+    with pytest.raises(ValueError):
+        evaluate(UnaryOp("+", Number(1, 0), 0), {})
+
+
+def test_eval_unknown_node_type_raises():
+    with pytest.raises(TypeError):
+        evaluate("not a node", {})
+
+
+def test_functions_and_constants_registered():
+    assert "sqrt" in FUNCTIONS
+    assert CONSTANTS["pi"] == math.pi
