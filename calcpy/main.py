@@ -316,3 +316,38 @@ def evaluate(node, env: dict):
         return value
 
     raise TypeError(f"unknown AST node type '{type(node).__name__}'")
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def main():
+    env: dict = {}
+    print("Simple calculator. Type 'quit' or 'exit' to leave.")
+    while True:
+        try:
+            text = input("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+
+        if not text:
+            continue
+        if text.lower() in ('quit', 'exit'):
+            break
+
+        try:
+            ast = parse(text)
+            result = evaluate(ast, env)
+            print(result)
+        except (LexError, ParseError) as e:
+            pointer = ' ' * (e.pos + 2) + '^'
+            print(text)
+            print(pointer)
+            print(f"Error: {e}")
+        except Exception as e:
+            print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
