@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
@@ -243,3 +244,75 @@ class Parser:
 def parse(text: str):
     tokens = tokenize(text)
     return Parser(tokens).parse()
+
+# ---------------------------------------------------------------------------
+# Evaluator
+# ---------------------------------------------------------------------------
+
+FUNCTIONS = {
+    'sqrt': math.sqrt,
+    'sin': math.sin,
+    'cos': math.cos,
+    'tan': math.tan,
+    'log': math.log,
+    'log10': math.log10,
+    'exp': math.exp,
+    'abs': abs,
+    'floor': math.floor,
+    'ceil': math.ceil,
+}
+
+CONSTANTS = {
+    'pi': math.pi,
+    'e': math.e,
+}
+
+
+def evaluate(node, env: dict):
+    if isinstance(node, Number):
+        return node.value
+
+    if isinstance(node, Variable):
+        if node.name in env:
+            return env[node.name]
+        if node.name in CONSTANTS:
+            return CONSTANTS[node.name]
+        raise NameError(f"undefined variable '{node.name}'")
+
+    if isinstance(node, UnaryOp):
+        val = evaluate(node.operand, env)
+        if node.op == '-':
+            return -val
+        raise ValueError(f"unknown unary operator '{node.op}'")
+
+    if isinstance(node, BinOp):
+        left = evaluate(node.left, env)
+        right = evaluate(node.right, env)
+        if node.op == '+':
+            return left + right
+        if node.op == '-':
+            return left - right
+        if node.op == '*':
+            return left * right
+        if node.op == '/':
+            return left / right
+        if node.op == '//':
+            return left // right
+        if node.op == '%':
+            return left % right
+        if node.op == '**':
+            return left ** right
+        raise ValueError(f"unknown operator '{node.op}'")
+
+    if isinstance(node, FunctionCall):
+        if node.name not in FUNCTIONS:
+            raise NameError(f"undefined function '{node.name}'")
+        args = [evaluate(a, env) for a in node.args]
+        return FUNCTIONS[node.name](*args)
+
+    if isinstance(node, Assignment):
+        value = evaluate(node.expr, env)
+        env[node.name] = value
+        return value
+
+    raise TypeError(f"unknown AST node type '{type(node).__name__}'")
