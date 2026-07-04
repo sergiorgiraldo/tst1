@@ -1,5 +1,7 @@
 import pytest
 
+import math
+
 from main import (
     Token,
     LexError,
@@ -13,7 +15,14 @@ from main import (
     Parser,
     ParseError,
     parse,
+    evaluate,
+    FUNCTIONS,
+    CONSTANTS,
 )
+
+
+def calc(text, env=None):
+    return evaluate(parse(text), {} if env is None else env)
 
 
 def types(text):
