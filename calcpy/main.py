@@ -1,6 +1,14 @@
+import logging
 import math
+import os
 from dataclasses import dataclass
 from typing import Any, List, Optional
+
+logging.basicConfig(
+    level=os.environ.get("CALCPY_LOG_LEVEL", "ERROR").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("calcpy")
 
 # ---------------------------------------------------------------------------
 # Tokens
@@ -81,9 +89,11 @@ def tokenize(text: str) -> List[Token]:
             i += 1
             continue
 
+        logger.error("unexpected character '%s' at pos %d", c, i)
         raise LexError(f"unexpected character '{c}'", i)
 
     tokens.append(Token("EOF", None, len(text)))
+    logger.debug("tokenized %r -> %d tokens", text, len(tokens))
     return tokens
 
 
@@ -153,6 +163,8 @@ class Parser:
     def consume(self, expected_type: Optional[str] = None) -> Token:
         tok = self.tokens[self.pos]
         if expected_type and tok.type != expected_type:
+            logger.error(
+                "expected '%s' but got '%s' at pos %d", expected_type, tok.value, tok.pos)
             raise ParseError(
                 f"expected '{expected_type}' but got '{tok.value}'", tok.pos)
         self.pos += 1
@@ -162,6 +174,7 @@ class Parser:
         node = self.parse_assignment()
         if self.peek().type != 'EOF':
             tok = self.peek()
+            logger.error("unexpected trailing token '%s' at pos %d", tok.value, tok.pos)
             raise ParseError(f"unexpected token '{tok.value}'", tok.pos)
         return node
 
@@ -238,12 +251,15 @@ class Parser:
             self.consume('RPAREN')
             return node
 
+        logger.error("unexpected token '%s' at pos %d", tok.value, tok.pos)
         raise ParseError(f"unexpected token '{tok.value}'", tok.pos)
 
 
 def parse(text: str):
     tokens = tokenize(text)
-    return Parser(tokens).parse()
+    node = Parser(tokens).parse()
+    logger.debug("parsed %r -> %r", text, node)
+    return node
 
 # ---------------------------------------------------------------------------
 # Evaluator
@@ -277,12 +293,14 @@ def evaluate(node, env: dict):
             return env[node.name]
         if node.name in CONSTANTS:
             return CONSTANTS[node.name]
+        logger.error("undefined variable '%s'", node.name)
         raise NameError(f"undefined variable '{node.name}'")
 
     if isinstance(node, UnaryOp):
         val = evaluate(node.operand, env)
         if node.op == '-':
             return -val
+        logger.error("unknown unary operator '%s'", node.op)
         raise ValueError(f"unknown unary operator '{node.op}'")
 
     if isinstance(node, BinOp):
@@ -302,10 +320,12 @@ def evaluate(node, env: dict):
             return left % right
         if node.op == '**':
             return left ** right
+        logger.error("unknown operator '%s'", node.op)
         raise ValueError(f"unknown operator '{node.op}'")
 
     if isinstance(node, FunctionCall):
         if node.name not in FUNCTIONS:
+            logger.error("undefined function '%s'", node.name)
             raise NameError(f"undefined function '{node.name}'")
         args = [evaluate(a, env) for a in node.args]
         return FUNCTIONS[node.name](*args)
@@ -313,8 +333,10 @@ def evaluate(node, env: dict):
     if isinstance(node, Assignment):
         value = evaluate(node.expr, env)
         env[node.name] = value
+        logger.debug("assigned %s = %r", node.name, value)
         return value
 
+    logger.error("unknown AST node type '%s'", type(node).__name__)
     raise TypeError(f"unknown AST node type '{type(node).__name__}'")
 
 # ---------------------------------------------------------------------------
@@ -346,6 +368,7 @@ def main():
             print(pointer)
             print(f"Error: {e}")
         except Exception as e:
+            logger.error("failed to evaluate %r: %s", text, e)
             print(f"Error: {e}")
 
 
