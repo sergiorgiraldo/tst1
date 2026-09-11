@@ -1,0 +1,57 @@
+name: duckdb-spark-parquet
+
+x-benchmark: &benchmark
+  cpus: ${BENCHMARK_CPUS:-4}
+  mem_limit: ${BENCHMARK_MEMORY:-8g}
+  volumes:
+    - ./data:/data:ro
+    - ./results:/results
+
+services:
+  generate:
+    build:
+      context: .
+      dockerfile: docker/generator.Dockerfile
+    environment:
+      PARQUET_FILES: ${PARQUET_FILES:-1000}
+      ROWS_PER_FILE: ${ROWS_PER_FILE:-5000}
+      LARGE_FILE_COUNT: ${LARGE_FILE_COUNT:-2}
+      LARGE_FILE_MULTIPLIER: ${LARGE_FILE_MULTIPLIER:-20}
+    volumes:
+      - ./data:/data
+
+  duckdb:
+    <<: *benchmark
+    build:
+      context: .
+      dockerfile: docker/duckdb.Dockerfile
+    environment:
+      BENCHMARK_THREADS: ${BENCHMARK_CPUS:-4}
+
+  duckdb-compact:
+    <<: *benchmark
+    build:
+      context: .
+      dockerfile: docker/duckdb.Dockerfile
+    entrypoint: ["python", "duckdb_compaction.py"]
+    environment:
+      BENCHMARK_THREADS: ${BENCHMARK_CPUS:-4}
+
+  spark:
+    <<: *benchmark
+    build:
+      context: .
+      dockerfile: docker/spark.Dockerfile
+    environment:
+      BENCHMARK_THREADS: ${BENCHMARK_CPUS:-4}
+      SPARK_LOCAL_DIRS: /tmp/spark
+
+  spark-compact:
+    <<: *benchmark
+    build:
+      context: .
+      dockerfile: docker/spark.Dockerfile
+    entrypoint: ["python", "spark_compaction.py"]
+    environment:
+      BENCHMARK_THREADS: ${BENCHMARK_CPUS:-4}
+      SPARK_LOCAL_DIRS: /tmp/spark
